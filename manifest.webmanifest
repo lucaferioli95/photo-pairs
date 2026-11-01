@@ -1,0 +1,15 @@
+{
+  "name": "Photo Pairs",
+  "short_name": "Photo Pairs",
+  "description": "Review and delete matching JPEG and RAW photos together. Nothing is uploaded.",
+  "id": "/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1d2a3a",
+  "theme_color": "#1d2a3a",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

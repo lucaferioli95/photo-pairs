@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Photo Pairs</title>
+<meta name="theme-color" content="#1d2a3a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+[hidden]{display:none!important}
+:root{--bg:#f4f1ea;--surface:#fff;--fg:#1d2a3a;--muted:#667385;--line:#d9d4c8;--accent:#1d2a3a;--accent-fg:#fff;--gold:#f2b84b;--danger:#c23a3a;--danger-soft:#fbe3e1;--ok:#2d7a52;
+ --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#121a24;--surface:#1b2633;--fg:#ecebe6;--muted:#93a0b0;--line:#2c3a4a;--accent:#f2b84b;--accent-fg:#1d2a3a;--danger:#ef7a7a;--danger-soft:#3a2224;--ok:#6cc596;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 var(--font)}
+button{font:inherit;color:inherit;cursor:pointer}
+header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:16px 20px 4px}
+h1{margin:0;font-size:22px;letter-spacing:-.01em}
+.ver{font:500 12px/1 ui-monospace,Menlo,Consolas,monospace;color:var(--muted)}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0;margin-left:auto}
+.linkbtn:hover{color:var(--fg)}
+main{padding:8px 20px 80px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px}
+.btn:hover{border-color:var(--fg)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+.btn.danger{background:var(--danger);color:#fff;border-color:var(--danger);font-weight:600}
+.btn:disabled{opacity:.4;cursor:default}
+.hero{border:2px dashed var(--line);border-radius:16px;padding:48px 20px;text-align:center;margin-top:16px;background:var(--surface)}
+.hero p{color:var(--muted);max-width:520px;margin:8px auto 20px}
+.warn{background:var(--danger-soft);border-radius:10px;padding:12px 14px;margin-top:16px}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--line)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px}
+.chip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.chip span{opacity:.7;margin-left:4px}
+.opts{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:13px;padding:8px 0}
+.opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.spacer{flex:1}
+.info{color:var(--muted);font-size:13px;padding:4px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:12px}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:12px;overflow:hidden;position:relative;cursor:pointer}
+.card.marked{border-color:var(--danger)}
+.card .th{aspect-ratio:3/2;background:#0002;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;overflow:hidden}
+.card.marked .th canvas{opacity:.45}
+.card canvas{width:100%;height:100%;object-fit:cover;display:block}
+.card .meta{padding:8px 10px;font-size:13px}
+.card .name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.tag{font:600 10px/1 ui-monospace,Menlo,monospace;padding:3px 5px;border-radius:4px;background:var(--line);color:var(--fg)}
+.tag.miss{background:var(--gold);color:#1d2a3a}
+.chk{position:absolute;top:8px;left:8px;width:26px;height:26px;border-radius:7px;border:2px solid #fff;background:#0007;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;padding:0}
+.card.marked .chk{background:var(--danger);border-color:var(--danger)}
+/* viewer */
+.viewer{position:fixed;inset:0;background:#0b1118;color:#fff;z-index:20;display:flex;flex-direction:column}
+.viewer .stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.viewer .stage.marked img{opacity:.35}
+.viewer .stage .stamp{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:var(--danger);color:#fff;font-weight:700;padding:6px 14px;border-radius:8px}
+.vbar{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:12px;background:#121c27}
+.vbar .btn{background:#1f2c3b;border-color:#33465a;color:#fff}
+.vbar .btn.danger{background:var(--danger);border-color:var(--danger)}
+.vtext{text-align:center;padding:8px 12px 0;font-size:13px;color:#b8c3d0;background:#121c27}
+.hint{color:#8997a8;font-size:12px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--accent-fg);padding:10px 16px;border-radius:10px;z-index:30;max-width:90vw}
+.foot{color:var(--muted);font-size:12px;padding:0 20px 24px}
+.foot a{color:inherit}
+</style>
+</head>
+<body>
+<header>
+  <h1>Photo Pairs <span class="ver" id="ver"></span></h1>
+  <button type="button" class="linkbtn" id="installBtn">Install app</button>
+</header>
+<main>
+  <div id="unsupported" class="warn" hidden><b>This browser cannot edit folders.</b> Open Photo Pairs in Chrome, Edge, Brave or Opera on a computer. (Safari, Firefox and phones do not allow it.)</div>
+  <div id="home" class="hero">
+    <h2 style="margin:0">Open a folder of photos</h2>
+    <p>Photo Pairs matches every JPEG with its RAW file. Review them together, mark the ones you don't want, and delete both files in one go.</p>
+    <button class="btn primary" id="openBtn" type="button">Open folder…</button>
+  </div>
+  <div id="app" hidden>
+    <div class="bar">
+      <button class="btn" id="reopenBtn" type="button">Open another folder…</button>
+      <div class="chips" id="chips"></div>
+      <span class="spacer"></span>
+      <button class="btn" id="clearBtn" type="button">Clear marks</button>
+      <button class="btn" id="markAllBtn" type="button">Mark all shown</button>
+      <button class="btn danger" id="delBtn" type="button" disabled>Delete 0</button>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="optSub" checked> Include subfolders</label>
+      <label><input type="checkbox" id="optSide" checked> Also delete XMP / PP3 / DOP sidecar files</label>
+      <label><input type="checkbox" id="optSafe" checked> Move to a "_deleted" folder instead of deleting permanently</label>
+    </div>
+    <div class="info" id="info"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+</main>
+<div class="viewer" id="viewer" hidden>
+  <div class="vtext" id="vtext"></div>
+  <div class="stage" id="stage"><img id="vimg" alt=""><div class="stamp" id="stamp" hidden>MARKED FOR DELETION</div><div id="vnone" hidden>No JPEG preview for this RAW file</div></div>
+  <div class="vbar">
+    <button class="btn" id="vprev" type="button">← Prev</button>
+    <button class="btn danger" id="vmark" type="button">Mark for deletion (D)</button>
+    <button class="btn" id="vnext" type="button">Next →</button>
+    <button class="btn" id="vclose" type="button">Close (Esc)</button>
+    <span class="hint">Arrows move · Space/D marks and moves on</span>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<p class="foot">Version <span id="ver2"></span> · <a href="https://github.com/lucaferioli95/photo-pairs/blob/main/CHANGELOG.md">Changelog</a> · <span id="hostNote"></span></p>
+<script src="install.js"></script>
+<script>
+var APP_VERSION = '1.0.0';
+var JPG = ['jpg','jpeg','jpe'];
+var RAW = ['cr2','cr3','crw','nef','nrw','arw','srf','sr2','raf','orf','rw2','dng','pef','srw','3fr','erf','kdc','mrw','x3f','raw','iiq','rwl','dcr','mef','mos'];
+var SIDE = ['xmp','pp3','dop','pts'];
+var $ = function(id){return document.getElementById(id)};
+$('ver').textContent = 'v' + APP_VERSION; $('ver2').textContent = APP_VERSION;
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+if (!window.showDirectoryPicker) { $('unsupported').hidden = false; $('openBtn').disabled = true; }
+
+var groups = [], filter = 'pair', viewIdx = -1, rootHandle = null, busy = false;
+
+function split(n){ var i = n.lastIndexOf('.'); return i < 1 ? [n,''] : [n.slice(0,i), n.slice(i+1).toLowerCase()]; }
+function fmt(b){ return b > 1048576 ? (b/1048576).toFixed(1)+' MB' : Math.round(b/1024)+' KB'; }
+function toast(t, ms){ var e=$('toast'); e.textContent=t; e.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(function(){e.hidden=true}, ms||3500); }
+
+async function scan(dir, path, rec, out){
+  for await (var h of dir.values()){
+    if (h.kind === 'directory'){
+      if (rec && h.name !== '_deleted' && h.name[0] !== '.') await scan(h, path + h.name + '/', rec, out);
+      continue;
+    }
+    var p = split(h.name), ext = p[1], kind = JPG.includes(ext) ? 'jpg' : RAW.includes(ext) ? 'raw' : SIDE.includes(ext) ? 'side' : null;
+    if (!kind) continue;
+    var stem = p[0];
+    if (kind === 'side'){ var q = split(stem); if (JPG.includes(q[1]) || RAW.includes(q[1])) stem = q[0]; }
+    out.push({kind: kind, handle: h, dir: dir, path: path, stem: stem, ext: ext, name: h.name});
+  }
+}
+
+async function openFolder(){
+  var dir;
+  try { dir = await showDirectoryPicker({mode:'readwrite'}); } catch(e){ return; }
+  rootHandle = dir; $('home').hidden = true; $('app').hidden = false;
+  await load();
+}
+async function load(){
+  $('info').textContent = 'Scanning ' + rootHandle.name + '…'; $('grid').innerHTML = '';
+  var files = [];
+  try { await scan(rootHandle, '', $('optSub').checked, files); } catch(e){ toast('Could not read the folder: ' + e.message); return; }
+  var map = {};
+  files.forEach(function(f){
+    var k = f.path + f.stem.toLowerCase();
+    var g = map[k] || (map[k] = {key:k, stem:f.stem, path:f.path, jpg:[], raw:[], side:[], marked:false});
+    g[f.kind].push(f);
+  });
+  groups = Object.keys(map).map(function(k){return map[k]}).filter(function(g){return g.jpg.length || g.raw.length})
+    .sort(function(a,b){return (a.path+a.stem).localeCompare(b.path+b.stem, undefined, {numeric:true})});
+  for (var g of groups) for (var f of g.jpg.concat(g.raw)) { try { f.size = (await f.handle.getFile()).size; } catch(e){ f.size = 0; } }
+  filter = groups.some(isPair) ? 'pair' : 'all';
+  render();
+}
+function isPair(g){ return g.jpg.length && g.raw.length; }
+function shown(){
+  return groups.filter(function(g){
+    return filter === 'all' || (filter === 'pair' && isPair(g)) || (filter === 'jpg' && g.jpg.length && !g.raw.length) || (filter === 'raw' && g.raw.length && !g.jpg.length);
+  });
+}
+var io = null, queue = [], running = 0;
+function render(){
+  var c = {all: groups.length, pair: groups.filter(isPair).length, jpg: groups.filter(function(g){return g.jpg.length && !g.raw.length}).length, raw: groups.filter(function(g){return g.raw.length && !g.jpg.length}).length};
+  $('chips').innerHTML = [['pair','Pairs'],['jpg','JPEG only'],['raw','RAW only'],['all','All']].map(function(x){
+    return '<button type="button" class="chip' + (filter===x[0]?' on':'') + '" data-f="' + x[0] + '">' + x[1] + '<span>' + c[x[0]] + '</span></button>';
+  }).join('');
+  var list = shown(); var grid = $('grid'); grid.innerHTML = '';
+  if (io) io.disconnect(); queue = [];
+  io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ io.unobserve(e.target); queue.push(e.target); pump(); } }); }, {rootMargin:'300px'});
+  list.forEach(function(g){
+    var d = document.createElement('div'); d.className = 'card' + (g.marked?' marked':''); d._g = g;
+    var tags = (g.jpg.length ? '<span class="tag">JPG ' + fmt(g.jpg[0].size) + '</span>' : '<span class="tag miss">no JPG</span>') +
+               (g.raw.length ? '<span class="tag">' + g.raw[0].ext.toUpperCase() + ' ' + fmt(g.raw[0].size) + '</span>' : '<span class="tag miss">no RAW</span>');
+    d.innerHTML = '<button class="chk" type="button" title="Mark for deletion">' + (g.marked?'✓':'') + '</button><div class="th">' + (g.jpg.length ? '' : 'RAW only') + '</div><div class="meta"><div class="name" title="' + esc(g.path+g.stem) + '">' + esc(g.stem) + '</div><div class="tags">' + tags + '</div></div>';
+    grid.appendChild(d); if (g.jpg.length) io.observe(d);
+  });
+  var m = groups.filter(function(g){return g.marked}).length;
+  $('delBtn').textContent = 'Delete ' + m + (m === 1 ? ' photo' : ' photos'); $('delBtn').disabled = !m || busy;
+  $('info').textContent = rootHandle.name + ' — ' + groups.length + ' photos, ' + c.pair + ' with both JPEG and RAW. Showing ' + list.length + '.';
+}
+function esc(s){ return s.replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
+function pump(){
+  while (running < 4 && queue.length){
+    var card = queue.shift(); running++;
+    thumb(card).catch(function(){}).then(function(){ running--; pump(); });
+  }
+}
+async function thumb(card){
+  var g = card._g, file = await g.jpg[0].handle.getFile();
+  var bmp = await createImageBitmap(file, {resizeWidth: 360, resizeQuality: 'medium'});
+  var cv = document.createElement('canvas'); cv.width = bmp.width; cv.height = bmp.height;
+  cv.getContext('2d').drawImage(bmp, 0, 0); bmp.close();
+  var th = card.querySelector('.th'); th.innerHTML = ''; th.appendChild(cv);
+}
+
+/* marking */
+function setMark(g, v){ g.marked = v; }
+$('grid').addEventListener('click', function(e){
+  var card = e.target.closest('.card'); if (!card) return;
+  if (e.target.closest('.chk')){ card._g.marked = !card._g.marked; card.classList.toggle('marked', card._g.marked); card.querySelector('.chk').textContent = card._g.marked ? '✓' : ''; refreshCount(); return; }
+  openViewer(shown().indexOf(card._g));
+});
+function refreshCount(){ var m = groups.filter(function(g){return g.marked}).length; $('delBtn').textContent = 'Delete ' + m + (m === 1 ? ' photo' : ' photos'); $('delBtn').disabled = !m || busy; }
+$('chips').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (b){ filter = b.dataset.f; render(); } });
+$('clearBtn').onclick = function(){ groups.forEach(function(g){g.marked=false}); render(); };
+$('markAllBtn').onclick = function(){ shown().forEach(function(g){g.marked=true}); render(); };
+$('openBtn').onclick = $('reopenBtn').onclick = openFolder;
+$('optSub').onchange = load;
+
+/* viewer */
+var curUrl = null;
+function openViewer(i){ if (i < 0) return; viewIdx = i; $('viewer').hidden = false; document.body.style.overflow = 'hidden'; showView(); }
+function closeViewer(){ $('viewer').hidden = true; document.body.style.overflow = ''; viewIdx = -1; if (curUrl){ URL.revokeObjectURL(curUrl); curUrl = null; } render(); }
+async function showView(){
+  var list = shown(), g = list[viewIdx]; if (!g){ closeViewer(); return; }
+  $('stage').classList.toggle('marked', g.marked); $('stamp').hidden = !g.marked;
+  $('vmark').textContent = g.marked ? 'Unmark (D)' : 'Mark for deletion (D)';
+  $('vtext').textContent = (viewIdx+1) + ' / ' + list.length + ' · ' + g.path + g.stem + ' · ' + (g.jpg.length ? 'JPG ' + fmt(g.jpg[0].size) : 'no JPG') + ' · ' + (g.raw.length ? g.raw[0].ext.toUpperCase() + ' ' + fmt(g.raw[0].size) : 'no RAW');
+  var my = viewIdx, img = $('vimg');
+  if (!g.jpg.length){ img.hidden = true; $('vnone').hidden = false; return; }
+  $('vnone').hidden = true; img.hidden = false;
+  try {
+    var f = await g.jpg[0].handle.getFile(); if (my !== viewIdx) return;
+    var u = URL.createObjectURL(f); img.src = u; if (curUrl) URL.revokeObjectURL(curUrl); curUrl = u;
+  } catch(e){}
+}
+function nav(d){ var n = shown().length; if (!n) return; viewIdx = (viewIdx + d + n) % n; showView(); }
+function toggleView(advance){
+  var g = shown()[viewIdx]; if (!g) return; g.marked = !g.marked;
+  if (advance && g.marked && viewIdx < shown().length - 1) nav(1); else showView();
+}
+$('vprev').onclick = function(){nav(-1)}; $('vnext').onclick = function(){nav(1)};
+$('vmark').onclick = function(){toggleView(false)}; $('vclose').onclick = closeViewer;
+document.addEventListener('keydown', function(e){
+  if ($('viewer').hidden) return;
+  if (e.key === 'ArrowRight') nav(1); else if (e.key === 'ArrowLeft') nav(-1);
+  else if (e.key === 'Escape') closeViewer();
+  else if (e.key === ' ' || e.key.toLowerCase() === 'd'){ e.preventDefault(); toggleView(true); }
+  else return;
+  e.preventDefault();
+});
+
+/* delete */
+async function removeFile(f, safe){
+  if (safe){
+    var del = await f.dir.getDirectoryHandle('_deleted', {create:true});
+    var name = f.name, n = 1;
+    while (true){ try { await del.getFileHandle(name); var p = split(f.name); name = p[0] + '_' + (n++) + '.' + p[1]; } catch(e){ break; } }
+    var dest = await del.getFileHandle(name, {create:true}), w = await dest.createWritable();
+    var file = await f.handle.getFile();
+    await file.stream().pipeTo(w);
+  }
+  await f.dir.removeEntry(f.name);
+}
+$('delBtn').onclick = async function(){
+  var marked = groups.filter(function(g){return g.marked}); if (!marked.length || busy) return;
+  var safe = $('optSafe').checked, side = $('optSide').checked;
+  var files = 0; marked.forEach(function(g){ files += g.jpg.length + g.raw.length + (side ? g.side.length : 0); });
+  var msg = (safe ? 'Move ' : 'PERMANENTLY DELETE ') + files + ' files (' + marked.length + ' photos, JPEG and RAW together)' + (safe ? ' into a "_deleted" folder next to them?' : '? This cannot be undone and skips the Recycle Bin.');
+  if (!confirm(msg)) return;
+  busy = true; var done = 0, fail = [], gone = {};
+  for (var g of marked){
+    var all = g.jpg.concat(g.raw, side ? g.side : []), ok = true;
+    for (var f of all){
+      try { await removeFile(f, safe); } catch(e){ ok = false; fail.push(f.name + ' (' + e.message + ')'); }
+      done++; $('info').textContent = 'Working… ' + done + ' / ' + files;
+    }
+    if (ok) gone[g.key] = true;
+  }
+  busy = false;
+  groups = groups.filter(function(g){ return !gone[g.key]; });
+  render();
+  toast(fail.length ? 'Some files failed: ' + fail.slice(0,3).join(', ') : (safe ? 'Moved ' : 'Deleted ') + Object.keys(gone).length + ' photos', fail.length ? 8000 : 4000);
+};
+</script>
+</body>
+</html>
