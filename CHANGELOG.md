@@ -2,6 +2,11 @@
 
 All notable changes to Photo Pairs, newest first. The version number is also shown in the app header.
 
+## 1.3.0 - 2026-11-01
+- The Library now syncs across your devices. Press "Sign in to sync" in the Library tab and sign in with Google (same allowed list as the Control Room, so only you). Changes made on one device appear on the others within about 30 seconds, or straight away when you open the app.
+- Safe merging: rows are merged by their own id, so editing different albums on two devices never overwrites either. Deleted rows stay deleted.
+- Works offline: the list is always saved on the device first and syncs when the connection is back.
+
 ## 1.2.0 - 2026-11-01
 - New "Library" tab to keep track of your photo albums: one row per album with a name, a year and a column for each place it is kept (Review, Stampa, Computer, HD1, HD2, GP, MicroSD).
 - Add as many rows as you like, filter by year (with a count for each year), search by name, tap a cell to cycle empty / ✓ / –, double-click or long-press to type your own text (for example a name).
