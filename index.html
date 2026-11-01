@@ -42,6 +42,14 @@ main{padding:8px 20px 80px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:12px}
 .card{background:var(--surface);border:2px solid var(--line);border-radius:12px;overflow:hidden;position:relative;cursor:pointer}
 .card.marked{border-color:var(--danger)}
+.card.best{border-color:var(--gold)}
+.star{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:7px;border:2px solid #fff;background:#0007;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;padding:0}
+.card.best .star{background:var(--gold);border-color:var(--gold);color:#1d2a3a}
+.card.copied .star{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.gold{background:var(--gold);color:#1d2a3a;border-color:var(--gold);font-weight:600}
+.viewer .stage.best img{outline:4px solid var(--gold)}
+.viewer .stamp.gold{background:var(--gold);color:#1d2a3a}
+.vbar .btn.gold{background:var(--gold);border-color:var(--gold);color:#1d2a3a}
 .card .th{aspect-ratio:3/2;background:#0002;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;overflow:hidden}
 .card.marked .th canvas{opacity:.45}
 .card canvas{width:100%;height:100%;object-fit:cover;display:block}
@@ -87,11 +95,13 @@ main{padding:8px 20px 80px}
       <span class="spacer"></span>
       <button class="btn" id="clearBtn" type="button">Clear marks</button>
       <button class="btn" id="markAllBtn" type="button">Mark all shown</button>
+      <button class="btn gold" id="bestBtn" type="button" disabled>Copy 0 best</button>
       <button class="btn danger" id="delBtn" type="button" disabled>Delete 0</button>
     </div>
     <div class="opts">
       <label><input type="checkbox" id="optSub" checked> Include subfolders</label>
       <label><input type="checkbox" id="optSide" checked> Also delete XMP / PP3 / DOP sidecar files</label>
+      <label title="Best photos are copied (JPEG and RAW) into a \"_best\" folder inside the folder you opened"><input type="checkbox" id="optBestSide" checked> Copy sidecars with Best</label>
       <label><input type="checkbox" id="optSafe" checked> Move to a "_deleted" folder instead of deleting permanently</label>
     </div>
     <div class="info" id="info"></div>
@@ -103,17 +113,18 @@ main{padding:8px 20px 80px}
   <div class="stage" id="stage"><img id="vimg" alt=""><div class="stamp" id="stamp" hidden>MARKED FOR DELETION</div><div id="vnone" hidden>No JPEG preview for this RAW file</div></div>
   <div class="vbar">
     <button class="btn" id="vprev" type="button">← Prev</button>
+    <button class="btn gold" id="vbest" type="button">★ Best (B)</button>
     <button class="btn danger" id="vmark" type="button">Mark for deletion (D)</button>
     <button class="btn" id="vnext" type="button">Next →</button>
     <button class="btn" id="vclose" type="button">Close (Esc)</button>
-    <span class="hint">Arrows move · Space/D marks and moves on</span>
+    <span class="hint">Arrows move · D = delete mark · B = best · both move on</span>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 <p class="foot">Version <span id="ver2"></span> · <a href="https://github.com/lucaferioli95/photo-pairs/blob/main/CHANGELOG.md">Changelog</a> · <span id="hostNote"></span></p>
 <script src="install.js"></script>
 <script>
-var APP_VERSION = '1.0.0';
+var APP_VERSION = '1.1.0';
 var JPG = ['jpg','jpeg','jpe'];
 var RAW = ['cr2','cr3','crw','nef','nrw','arw','srf','sr2','raf','orf','rw2','dng','pef','srw','3fr','erf','kdc','mrw','x3f','raw','iiq','rwl','dcr','mef','mos'];
 var SIDE = ['xmp','pp3','dop','pts'];
@@ -131,7 +142,7 @@ function toast(t, ms){ var e=$('toast'); e.textContent=t; e.hidden=false; clearT
 async function scan(dir, path, rec, out){
   for await (var h of dir.values()){
     if (h.kind === 'directory'){
-      if (rec && h.name !== '_deleted' && h.name[0] !== '.') await scan(h, path + h.name + '/', rec, out);
+      if (rec && h.name !== '_deleted' && h.name !== '_best' && h.name[0] !== '.') await scan(h, path + h.name + '/', rec, out);
       continue;
     }
     var p = split(h.name), ext = p[1], kind = JPG.includes(ext) ? 'jpg' : RAW.includes(ext) ? 'raw' : SIDE.includes(ext) ? 'side' : null;
@@ -180,14 +191,14 @@ function render(){
   if (io) io.disconnect(); queue = [];
   io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ io.unobserve(e.target); queue.push(e.target); pump(); } }); }, {rootMargin:'300px'});
   list.forEach(function(g){
-    var d = document.createElement('div'); d.className = 'card' + (g.marked?' marked':''); d._g = g;
+    var d = document.createElement('div'); d.className = 'card' + (g.marked?' marked':'') + (g.best?' best':'') + (g.copied?' copied':''); d._g = g;
     var tags = (g.jpg.length ? '<span class="tag">JPG ' + fmt(g.jpg[0].size) + '</span>' : '<span class="tag miss">no JPG</span>') +
                (g.raw.length ? '<span class="tag">' + g.raw[0].ext.toUpperCase() + ' ' + fmt(g.raw[0].size) + '</span>' : '<span class="tag miss">no RAW</span>');
-    d.innerHTML = '<button class="chk" type="button" title="Mark for deletion">' + (g.marked?'✓':'') + '</button><div class="th">' + (g.jpg.length ? '' : 'RAW only') + '</div><div class="meta"><div class="name" title="' + esc(g.path+g.stem) + '">' + esc(g.stem) + '</div><div class="tags">' + tags + '</div></div>';
+    d.innerHTML = '<button class="chk" type="button" title="Mark for deletion">' + (g.marked?'✓':'') + '</button><button class="star" type="button" title="' + (g.copied?'Already copied to _best':'Mark as Best') + '">' + (g.copied?'✓':'★') + '</button><div class="th">' + (g.jpg.length ? '' : 'RAW only') + '</div><div class="meta"><div class="name" title="' + esc(g.path+g.stem) + '">' + esc(g.stem) + '</div><div class="tags">' + tags + '</div></div>';
     grid.appendChild(d); if (g.jpg.length) io.observe(d);
   });
   var m = groups.filter(function(g){return g.marked}).length;
-  $('delBtn').textContent = 'Delete ' + m + (m === 1 ? ' photo' : ' photos'); $('delBtn').disabled = !m || busy;
+  refreshCount();
   $('info').textContent = rootHandle.name + ' — ' + groups.length + ' photos, ' + c.pair + ' with both JPEG and RAW. Showing ' + list.length + '.';
 }
 function esc(s){ return s.replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}); }
@@ -209,13 +220,15 @@ async function thumb(card){
 function setMark(g, v){ g.marked = v; }
 $('grid').addEventListener('click', function(e){
   var card = e.target.closest('.card'); if (!card) return;
-  if (e.target.closest('.chk')){ card._g.marked = !card._g.marked; card.classList.toggle('marked', card._g.marked); card.querySelector('.chk').textContent = card._g.marked ? '✓' : ''; refreshCount(); return; }
+  if (e.target.closest('.chk')){ var g = card._g; g.marked = !g.marked; if (g.marked) g.best = false; paintCard(card); refreshCount(); return; }
+  if (e.target.closest('.star')){ var g2 = card._g; if (g2.copied) return; g2.best = !g2.best; if (g2.best) g2.marked = false; paintCard(card); refreshCount(); return; }
   openViewer(shown().indexOf(card._g));
 });
-function refreshCount(){ var m = groups.filter(function(g){return g.marked}).length; $('delBtn').textContent = 'Delete ' + m + (m === 1 ? ' photo' : ' photos'); $('delBtn').disabled = !m || busy; }
+function paintCard(card){ var g = card._g; card.classList.toggle('marked', g.marked); card.classList.toggle('best', g.best); card.querySelector('.chk').textContent = g.marked ? '✓' : ''; }
+function refreshCount(){ var m = groups.filter(function(g){return g.marked}).length, b = groups.filter(function(g){return g.best}).length; $('delBtn').textContent = 'Delete ' + m + (m === 1 ? ' photo' : ' photos'); $('delBtn').disabled = !m || busy; $('bestBtn').textContent = 'Copy ' + b + ' best'; $('bestBtn').disabled = !b || busy; }
 $('chips').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (b){ filter = b.dataset.f; render(); } });
-$('clearBtn').onclick = function(){ groups.forEach(function(g){g.marked=false}); render(); };
-$('markAllBtn').onclick = function(){ shown().forEach(function(g){g.marked=true}); render(); };
+$('clearBtn').onclick = function(){ groups.forEach(function(g){g.marked=false; g.best=false}); render(); };
+$('markAllBtn').onclick = function(){ shown().forEach(function(g){g.marked=true; g.best=false}); render(); };
 $('openBtn').onclick = $('reopenBtn').onclick = openFolder;
 $('optSub').onchange = load;
 
@@ -225,8 +238,11 @@ function openViewer(i){ if (i < 0) return; viewIdx = i; $('viewer').hidden = fal
 function closeViewer(){ $('viewer').hidden = true; document.body.style.overflow = ''; viewIdx = -1; if (curUrl){ URL.revokeObjectURL(curUrl); curUrl = null; } render(); }
 async function showView(){
   var list = shown(), g = list[viewIdx]; if (!g){ closeViewer(); return; }
-  $('stage').classList.toggle('marked', g.marked); $('stamp').hidden = !g.marked;
+  $('stage').classList.toggle('marked', g.marked); $('stage').classList.toggle('best', g.best);
+  $('stamp').hidden = !(g.marked || g.best || g.copied); $('stamp').classList.toggle('gold', !g.marked);
+  $('stamp').textContent = g.marked ? 'MARKED FOR DELETION' : g.copied ? '★ COPIED TO _best' : '★ BEST';
   $('vmark').textContent = g.marked ? 'Unmark (D)' : 'Mark for deletion (D)';
+  $('vbest').textContent = g.best ? '★ Unmark best (B)' : '★ Best (B)'; $('vbest').disabled = !!g.copied;
   $('vtext').textContent = (viewIdx+1) + ' / ' + list.length + ' · ' + g.path + g.stem + ' · ' + (g.jpg.length ? 'JPG ' + fmt(g.jpg[0].size) : 'no JPG') + ' · ' + (g.raw.length ? g.raw[0].ext.toUpperCase() + ' ' + fmt(g.raw[0].size) : 'no RAW');
   var my = viewIdx, img = $('vimg');
   if (!g.jpg.length){ img.hidden = true; $('vnone').hidden = false; return; }
@@ -237,17 +253,21 @@ async function showView(){
   } catch(e){}
 }
 function nav(d){ var n = shown().length; if (!n) return; viewIdx = (viewIdx + d + n) % n; showView(); }
-function toggleView(advance){
-  var g = shown()[viewIdx]; if (!g) return; g.marked = !g.marked;
-  if (advance && g.marked && viewIdx < shown().length - 1) nav(1); else showView();
+function toggleView(advance, which){
+  var g = shown()[viewIdx]; if (!g) return;
+  if (which === 'best'){ if (g.copied) return; g.best = !g.best; if (g.best) g.marked = false; }
+  else { g.marked = !g.marked; if (g.marked) g.best = false; }
+  var on = which === 'best' ? g.best : g.marked;
+  if (advance && on && viewIdx < shown().length - 1) nav(1); else showView();
 }
 $('vprev').onclick = function(){nav(-1)}; $('vnext').onclick = function(){nav(1)};
-$('vmark').onclick = function(){toggleView(false)}; $('vclose').onclick = closeViewer;
+$('vmark').onclick = function(){toggleView(false)}; $('vbest').onclick = function(){toggleView(false,'best')}; $('vclose').onclick = closeViewer;
 document.addEventListener('keydown', function(e){
   if ($('viewer').hidden) return;
   if (e.key === 'ArrowRight') nav(1); else if (e.key === 'ArrowLeft') nav(-1);
   else if (e.key === 'Escape') closeViewer();
   else if (e.key === ' ' || e.key.toLowerCase() === 'd'){ e.preventDefault(); toggleView(true); }
+  else if (e.key.toLowerCase() === 'b'){ toggleView(true,'best'); }
   else return;
   e.preventDefault();
 });
@@ -264,6 +284,32 @@ async function removeFile(f, safe){
   }
   await f.dir.removeEntry(f.name);
 }
+async function copyFile(f, dest){
+  var name = f.name, n = 1;
+  while (true){ try { await dest.getFileHandle(name); var p = split(f.name); name = p[0] + '_' + (n++) + '.' + p[1]; } catch(e){ break; } }
+  var out = await (await dest.getFileHandle(name, {create:true})).createWritable();
+  await (await f.handle.getFile()).stream().pipeTo(out);
+}
+$('bestBtn').onclick = async function(){
+  var best = groups.filter(function(g){return g.best && !g.copied}); if (!best.length || busy) return;
+  var side = $('optBestSide').checked, files = 0;
+  best.forEach(function(g){ files += g.jpg.length + g.raw.length + (side ? g.side.length : 0); });
+  busy = true; refreshCount();
+  var done = 0, fail = [], okn = 0;
+  try {
+    var dest = await rootHandle.getDirectoryHandle('_best', {create:true});
+    for (var g of best){
+      var ok = true;
+      for (var f of g.jpg.concat(g.raw, side ? g.side : [])){
+        try { await copyFile(f, dest); } catch(e){ ok = false; fail.push(f.name + ' (' + e.message + ')'); }
+        done++; $('info').textContent = 'Copying… ' + done + ' / ' + files;
+      }
+      if (ok){ g.copied = true; g.best = false; okn++; }
+    }
+  } catch(e){ fail.push(e.message); }
+  busy = false; render();
+  toast(fail.length ? 'Some files failed: ' + fail.slice(0,3).join(', ') : 'Copied ' + okn + ' photos (JPEG + RAW) to the "_best" folder', fail.length ? 8000 : 4000);
+};
 $('delBtn').onclick = async function(){
   var marked = groups.filter(function(g){return g.marked}); if (!marked.length || busy) return;
   var safe = $('optSafe').checked, side = $('optSide').checked;
