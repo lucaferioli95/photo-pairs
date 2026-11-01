@@ -72,6 +72,25 @@ main{padding:8px 20px 80px}
 .vtext{text-align:center;padding:8px 12px 0;font-size:13px;color:#b8c3d0;background:#121c27}
 .hint{color:#8997a8;font-size:12px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--accent-fg);padding:10px 16px;border-radius:10px;z-index:30;max-width:90vw}
+.tabs{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid var(--line)}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:600;color:var(--muted)}
+.tab.on{color:var(--fg);border-bottom-color:var(--gold)}
+.inp{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:7px 10px;font:inherit}
+.tblwrap{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table.lib{border-collapse:collapse;width:100%;min-width:760px}
+table.lib th{position:sticky;top:0;text-align:center;font-size:12px;color:var(--muted);padding:8px 6px;background:var(--surface);border-bottom:1px solid var(--line);white-space:nowrap}
+table.lib th:first-child{text-align:left;padding-left:12px}
+table.lib td{border-bottom:1px solid var(--line);padding:3px;text-align:center}
+table.lib tr:last-child td{border-bottom:0}
+table.lib tr:hover td{background:#8881}
+td.nm input,td.yr input{width:100%;border:0;background:none;color:inherit;font:inherit;padding:6px 8px}
+td.nm{text-align:left;min-width:220px}td.yr{width:70px}
+td.nm input:focus,td.yr input:focus{outline:2px solid var(--gold);border-radius:6px}
+.cell{min-width:44px;height:32px;border:0;border-radius:8px;background:none;font-size:15px;padding:0 6px}
+.cell:hover{background:#8882}
+.cell.y{color:var(--ok);font-weight:700}.cell.n{color:var(--muted)}.cell.t{font-size:12px;background:var(--gold);color:#1d2a3a;font-weight:600}
+td.rm button{border:0;background:none;color:var(--muted);font-size:18px;padding:0 8px}
+td.rm button:hover{color:var(--danger)}
 .foot{color:var(--muted);font-size:12px;padding:0 20px 24px}
 .foot a{color:inherit}
 </style>
@@ -81,7 +100,9 @@ main{padding:8px 20px 80px}
   <h1>Photo Pairs <span class="ver" id="ver"></span></h1>
   <button type="button" class="linkbtn" id="installBtn">Install app</button>
 </header>
+<nav class="tabs" id="tabs"><button type="button" class="tab on" data-t="clean">Cleanup</button><button type="button" class="tab" data-t="lib">Library</button></nav>
 <main>
+  <div id="paneClean">
   <div id="unsupported" class="warn" hidden><b>This browser cannot edit folders.</b> Open Photo Pairs in Chrome, Edge, Brave or Opera on a computer. (Safari, Firefox and phones do not allow it.)</div>
   <div id="home" class="hero">
     <h2 style="margin:0">Open a folder of photos</h2>
@@ -107,6 +128,27 @@ main{padding:8px 20px 80px}
     <div class="info" id="info"></div>
     <div class="grid" id="grid"></div>
   </div>
+  </div>
+  <div id="paneLib" hidden>
+    <div class="bar">
+      <div class="chips" id="yearChips"></div>
+      <input type="search" id="libSearch" placeholder="Search albums…" class="inp" style="max-width:220px">
+      <span class="spacer"></span>
+      <button class="btn" id="colBtn" type="button">Columns…</button>
+      <button class="btn" id="impBtn" type="button">Import…</button>
+      <button class="btn" id="expBtn" type="button">Export CSV</button>
+      <button class="btn primary" id="addRow" type="button">+ Add row</button>
+    </div>
+    <div class="info" id="libInfo"></div>
+    <div class="tblwrap"><table class="lib" id="libTable"></table></div>
+    <div id="impBox" class="warn" style="background:var(--surface);border:1px solid var(--line)" hidden>
+      <b>Import rows</b>
+      <p style="margin:6px 0;color:var(--muted)">Copy rows from a spreadsheet (or a CSV) and paste them here. Use one line per album: name, year, then one value per column. A first line with column names is recognised. Y or X becomes ✓, a dash becomes –, other text is kept.</p>
+      <textarea id="impText" class="inp" rows="8" style="width:100%;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px"><button class="btn primary" id="impGo" type="button">Add these rows</button><button class="btn" id="impCancel" type="button">Cancel</button><label style="margin-left:auto;display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="impReplace"> Replace everything already in the list</label></div>
+    </div>
+    <p class="hint" style="color:var(--muted);font-size:12px;margin-top:10px">Tap a cell to cycle: empty → ✓ → – . Double-click (or long-press) a cell to type your own text. The list is saved on this device only; use Export CSV for a backup.</p>
+  </div>
 </main>
 <div class="viewer" id="viewer" hidden>
   <div class="vtext" id="vtext"></div>
@@ -124,7 +166,7 @@ main{padding:8px 20px 80px}
 <p class="foot">Version <span id="ver2"></span> · <a href="https://github.com/lucaferioli95/photo-pairs/blob/main/CHANGELOG.md">Changelog</a> · <span id="hostNote"></span></p>
 <script src="install.js"></script>
 <script>
-var APP_VERSION = '1.1.0';
+var APP_VERSION = '1.2.0';
 var JPG = ['jpg','jpeg','jpe'];
 var RAW = ['cr2','cr3','crw','nef','nrw','arw','srf','sr2','raf','orf','rw2','dng','pef','srw','3fr','erf','kdc','mrw','x3f','raw','iiq','rwl','dcr','mef','mos'];
 var SIDE = ['xmp','pp3','dop','pts'];
@@ -133,6 +175,7 @@ $('ver').textContent = 'v' + APP_VERSION; $('ver2').textContent = APP_VERSION;
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 if (!window.showDirectoryPicker) { $('unsupported').hidden = false; $('openBtn').disabled = true; }
 
+var JS_NOOP = 0;
 var groups = [], filter = 'pair', viewIdx = -1, rootHandle = null, busy = false;
 
 function split(n){ var i = n.lastIndexOf('.'); return i < 1 ? [n,''] : [n.slice(0,i), n.slice(i+1).toLowerCase()]; }
@@ -330,6 +373,110 @@ $('delBtn').onclick = async function(){
   render();
   toast(fail.length ? 'Some files failed: ' + fail.slice(0,3).join(', ') : (safe ? 'Moved ' : 'Deleted ') + Object.keys(gone).length + ' photos', fail.length ? 8000 : 4000);
 };
+
+/* ---------- Library tab ---------- */
+var LIBKEY = 'pp-library-v1';
+var DEFCOLS = ['Review','Stampa','Computer','HD1','HD2','GP','MicroSD'];
+var lib = {cols: DEFCOLS.slice(), rows: [], year: 'all', q: ''};
+try { var sv = JSON.parse(localStorage.getItem(LIBKEY) || 'null'); if (sv && sv.rows) { lib.cols = sv.cols || DEFCOLS.slice(); lib.rows = sv.rows; } } catch(e){}
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+function libSave(){ try { localStorage.setItem(LIBKEY, JSON.stringify({cols: lib.cols, rows: lib.rows})); } catch(e){ toast('Could not save on this device: ' + e.message); } }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function normVal(v){ v = (v||'').trim(); if (!v) return ''; if (/^(y|x|yes|si|sì|✓|✔|v)$/i.test(v)) return '✓'; if (/^[-–—]$/.test(v)) return '–'; return v; }
+function libYears(){ var y = {}; lib.rows.forEach(function(r){ if (r.year) y[r.year] = (y[r.year]||0)+1; }); return Object.keys(y).sort(function(a,b){return b-a}).map(function(k){return [k,y[k]]}); }
+function libShown(){ var q = lib.q.toLowerCase(); return lib.rows.filter(function(r){ return (lib.year === 'all' || String(r.year) === lib.year) && (!q || r.name.toLowerCase().includes(q)); }); }
+function libRender(focusId){
+  var ys = libYears();
+  $('yearChips').innerHTML = '<button type="button" class="chip' + (lib.year==='all'?' on':'') + '" data-y="all">All<span>' + lib.rows.length + '</span></button>' +
+    ys.map(function(y){ return '<button type="button" class="chip' + (lib.year===y[0]?' on':'') + '" data-y="' + y[0] + '">' + y[0] + '<span>' + y[1] + '</span></button>'; }).join('');
+  var list = libShown();
+  var head = '<tr><th>Album / shoot</th><th>Year</th>' + lib.cols.map(function(c){ return '<th>' + esc(c) + '</th>'; }).join('') + '<th></th></tr>';
+  var body = list.map(function(r){
+    return '<tr data-id="' + r.id + '"><td class="nm"><input data-f="name" value="' + esc(r.name) + '" placeholder="Name"></td><td class="yr"><input data-f="year" inputmode="numeric" value="' + esc(String(r.year||'')) + '"></td>' +
+      lib.cols.map(function(c,i){ var v = r.v[c] || '', cls = v === '✓' ? ' y' : v === '–' ? ' n' : v ? ' t' : '';
+        return '<td><button type="button" class="cell' + cls + '" data-c="' + esc(c) + '">' + (v ? esc(v) : '·') + '</button></td>'; }).join('') +
+      '<td class="rm"><button type="button" title="Delete row">×</button></td></tr>';
+  }).join('');
+  $('libTable').innerHTML = head + (body || '<tr><td colspan="' + (lib.cols.length+3) + '" style="padding:24px;color:var(--muted)">No rows yet. Add one, or use Import to paste your list.</td></tr>');
+  $('libInfo').textContent = list.length + ' of ' + lib.rows.length + ' albums' + (lib.year !== 'all' ? ' in ' + lib.year : '');
+  if (focusId){ var el = document.querySelector('tr[data-id="' + focusId + '"] input'); if (el){ el.focus(); el.scrollIntoView({block:'center'}); } }
+}
+$('yearChips').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (b){ lib.year = b.dataset.y; libRender(); } });
+$('libSearch').oninput = function(){ lib.q = this.value; libRender(); };
+$('addRow').onclick = function(){
+  var r = {id: uid(), name: '', year: lib.year !== 'all' ? Number(lib.year) : new Date().getFullYear(), v: {}};
+  lib.rows.push(r); libSave(); libRender(r.id);
+};
+function rowOf(el){ var tr = el.closest('tr'); return tr && lib.rows.find(function(r){ return r.id === tr.dataset.id; }); }
+$('libTable').addEventListener('change', function(e){
+  var r = rowOf(e.target), f = e.target.dataset.f; if (!r || !f) return;
+  if (f === 'year'){ var n = parseInt(e.target.value, 10); r.year = isNaN(n) ? '' : n; libSave(); libRender(); } else { r.name = e.target.value; libSave(); }
+});
+var lpTimer = null, lpFired = false;
+function editCell(btn){
+  var r = rowOf(btn), c = btn.dataset.c; if (!r) return;
+  var t = prompt(c + ' for "' + r.name + '" (leave empty to clear):', r.v[c] || ''); if (t === null) return;
+  t = normVal(t); if (t) r.v[c] = t; else delete r.v[c]; libSave(); libRender();
+}
+$('libTable').addEventListener('click', function(e){
+  var cell = e.target.closest('.cell'), rm = e.target.closest('.rm button');
+  if (cell){
+    if (lpFired){ lpFired = false; return; }
+    var r = rowOf(cell), c = cell.dataset.c, v = r.v[c] || '';
+    var nx = v === '' ? '✓' : v === '✓' ? '–' : ''; if (nx) r.v[c] = nx; else delete r.v[c];
+    libSave(); cell.textContent = nx || '·'; cell.className = 'cell' + (nx === '✓' ? ' y' : nx === '–' ? ' n' : ''); return;
+  }
+  if (rm){ var r2 = rowOf(rm); if (r2 && confirm('Delete "' + (r2.name || 'this row') + '"?')){ lib.rows = lib.rows.filter(function(x){return x !== r2}); libSave(); libRender(); } }
+});
+$('libTable').addEventListener('dblclick', function(e){ var cell = e.target.closest('.cell'); if (cell) editCell(cell); });
+$('libTable').addEventListener('pointerdown', function(e){ var cell = e.target.closest('.cell'); if (!cell || e.pointerType === 'mouse') return; lpFired = false; lpTimer = setTimeout(function(){ lpFired = true; editCell(cell); }, 550); });
+['pointerup','pointercancel','pointermove'].forEach(function(t){ $('libTable').addEventListener(t, function(){ clearTimeout(lpTimer); }); });
+/* columns */
+$('colBtn').onclick = function(){
+  var a = prompt('Columns: ' + lib.cols.join(', ') + '\n\nType a new column name to ADD it, or an existing name to REMOVE it (its values are deleted):'); if (!a) return; a = a.trim(); if (!a) return;
+  var i = lib.cols.findIndex(function(c){ return c.toLowerCase() === a.toLowerCase(); });
+  if (i >= 0){ if (!confirm('Remove column "' + lib.cols[i] + '" and its values from every row?')) return; var nm = lib.cols[i]; lib.cols.splice(i,1); lib.rows.forEach(function(r){ delete r.v[nm]; }); }
+  else lib.cols.push(a);
+  libSave(); libRender();
+};
+/* import / export */
+function parseTable(txt){
+  var delim = txt.indexOf('\t') >= 0 ? '\t' : txt.split('\n')[0].includes(';') ? ';' : ',';
+  return txt.replace(/\r/g,'').split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return l.split(delim).map(function(x){ return x.replace(/^"|"$/g,'').trim(); }); });
+}
+$('impBtn').onclick = function(){ $('impBox').hidden = false; $('impText').focus(); };
+$('impCancel').onclick = function(){ $('impBox').hidden = true; };
+$('impGo').onclick = function(){
+  var rows = parseTable($('impText').value); if (!rows.length){ toast('Nothing to import.'); return; }
+  var cols = lib.cols.slice();
+  if (rows[0].length > 1 && /^(year|anno)$/i.test(rows[0][1]) || /^(name|album|nome)$/i.test(rows[0][0])){
+    cols = rows[0].slice(2).filter(Boolean); rows.shift();
+    cols.forEach(function(c){ if (!lib.cols.some(function(x){ return x.toLowerCase() === c.toLowerCase(); })) lib.cols.push(c); });
+    cols = cols.map(function(c){ return lib.cols.find(function(x){ return x.toLowerCase() === c.toLowerCase(); }); });
+  }
+  var out = rows.map(function(p){
+    var yr = parseInt(p[1], 10), v = {};
+    cols.forEach(function(c,i){ var x = normVal(p[2+i]); if (x) v[c] = x; });
+    return {id: uid(), name: p[0] || '', year: isNaN(yr) ? '' : yr, v: v};
+  });
+  if ($('impReplace').checked) lib.rows = out; else lib.rows = lib.rows.concat(out);
+  libSave(); $('impBox').hidden = true; $('impText').value = ''; libRender(); toast('Added ' + out.length + ' rows');
+};
+$('expBtn').onclick = function(){
+  function q(x){ x = String(x == null ? '' : x); return /[",\n;]/.test(x) ? '"' + x.replace(/"/g,'""') + '"' : x; }
+  var lines = [['Name','Year'].concat(lib.cols).map(q).join(',')].concat(libShown().map(function(r){ return [r.name, r.year].concat(lib.cols.map(function(c){ return r.v[c] || ''; })).map(q).join(','); }));
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\n')], {type:'text/csv'}));
+  a.download = 'photo-library' + (lib.year !== 'all' ? '-' + lib.year : '') + '.csv'; a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+};
+/* tabs */
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(function(b){ b.classList.toggle('on', b.dataset.t === t); });
+  $('paneClean').hidden = t !== 'clean'; $('paneLib').hidden = t !== 'lib';
+  try { localStorage.setItem('pp-tab', t); } catch(e){}
+  if (t === 'lib') libRender();
+}
+$('tabs').addEventListener('click', function(e){ var b = e.target.closest('.tab'); if (b) showTab(b.dataset.t); });
+try { if (localStorage.getItem('pp-tab') === 'lib') showTab('lib'); } catch(e){}
 </script>
 </body>
 </html>

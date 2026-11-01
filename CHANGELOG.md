@@ -2,6 +2,12 @@
 
 All notable changes to Photo Pairs, newest first. The version number is also shown in the app header.
 
+## 1.2.0 - 2026-11-01
+- New "Library" tab to keep track of your photo albums: one row per album with a name, a year and a column for each place it is kept (Review, Stampa, Computer, HD1, HD2, GP, MicroSD).
+- Add as many rows as you like, filter by year (with a count for each year), search by name, tap a cell to cycle empty / ✓ / –, double-click or long-press to type your own text (for example a name).
+- Columns can be added or removed. Paste rows from a spreadsheet with Import, and Export CSV for a backup.
+- The list is saved on the device you use (browser storage), not in the repository, so it stays private.
+
 ## 1.1.0 - 2026-11-01
 - New "Best" mark (gold star on each photo, or B in the full-screen view). "Copy best" copies the JPEG and RAW of every Best photo into a "_best" folder inside the folder you opened, and leaves the originals where they are. Photos already copied show a green tick, so they are not copied twice. Optional: copy the XMP/PP3/DOP sidecars too.
 - A photo is either marked for deletion or Best, never both.
