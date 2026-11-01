@@ -2,6 +2,9 @@
 
 All notable changes to Photo Pairs, newest first. The version number is also shown in the app header.
 
+## 1.3.1 - 2026-11-01
+- Fixed the install button saying "Uninstall app" on a phone where the app is not installed. The button now only switches to "Uninstall" in a real app window. If it ever shows "Uninstall" by mistake, tapping it offers "This is not an installed app, show Install instead".
+
 ## 1.3.0 - 2026-11-01
 - The Library now syncs across your devices. Press "Sign in to sync" in the Library tab and sign in with Google (same allowed list as the Control Room, so only you). Changes made on one device appear on the others within about 30 seconds, or straight away when you open the app.
 - Safe merging: rows are merged by their own id, so editing different albums on two devices never overwrites either. Deleted rows stay deleted.
