@@ -2,6 +2,13 @@
 
 All notable changes to Photo Pairs, newest first. The version number is also shown in the app header.
 
+## 1.4.0 - 2026-11-08
+- Library: each album now has a Stage (Imported, Reviewed, Selected, Edited / printed) so you can see how far it has got.
+- Library: a dashboard above the table with tap-to-filter tiles: All albums, To review, To select, At risk and Edited / printed. A line under it counts the albums in each place (Computer, HD1, HD2, GP...) and a "Missing from..." filter lists the albums not yet copied to a given place.
+- Library: places now cycle empty, ✓ copied, ✓✓ checked, – not needed. Existing ticks are untouched.
+- Library: a Safe dot on every row. Safe means the album is in at least 2 places and at least one is not the computer or an SD card. Review and Stampa are treated as steps, not places.
+- Export and import include the Stage column.
+
 ## 1.3.1 - 2026-11-01
 - Fixed the install button saying "Uninstall app" on a phone where the app is not installed. The button now only switches to "Uninstall" in a real app window. If it ever shows "Uninstall" by mistake, tapping it offers "This is not an installed app, show Install instead".
 

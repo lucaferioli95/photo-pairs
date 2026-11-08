@@ -77,7 +77,7 @@ main{padding:8px 20px 80px}
 .tab.on{color:var(--fg);border-bottom-color:var(--gold)}
 .inp{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:7px 10px;font:inherit}
 .tblwrap{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
-table.lib{border-collapse:collapse;width:100%;min-width:760px}
+table.lib{border-collapse:collapse;width:100%;min-width:900px}
 table.lib th{position:sticky;top:0;text-align:center;font-size:12px;color:var(--muted);padding:8px 6px;background:var(--surface);border-bottom:1px solid var(--line);white-space:nowrap}
 table.lib th:first-child{text-align:left;padding-left:12px}
 table.lib td{border-bottom:1px solid var(--line);padding:3px;text-align:center}
@@ -89,6 +89,16 @@ td.nm input:focus,td.yr input:focus{outline:2px solid var(--gold);border-radius:
 .cell{min-width:44px;height:32px;border:0;border-radius:8px;background:none;font-size:15px;padding:0 6px}
 .cell:hover{background:#8882}
 .cell.y{color:var(--ok);font-weight:700}.cell.n{color:var(--muted)}.cell.t{font-size:12px;background:var(--gold);color:#1d2a3a;font-weight:600}
+td.stg select{border:1px solid var(--line);background:var(--surface);color:inherit;border-radius:8px;font:inherit;font-size:12px;padding:5px 4px;max-width:104px}
+td.stg select.s-imported{border-color:var(--gold)}td.stg select.s-reviewed{border-color:#4a90d9}td.stg select.s-selected{border-color:#8a5ad6}td.stg select.s-done{border-color:var(--ok);color:var(--ok)}
+.cell.v{color:var(--ok);font-weight:700;font-size:13px}
+.sf{display:inline-block;width:12px;height:12px;border-radius:50%}.sf.ok{background:var(--ok)}.sf.bad{background:var(--danger)}.sf.na{background:var(--line)}
+.dash{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+.tile{flex:1 1 118px;border:1px solid var(--line);background:var(--surface);color:inherit;border-radius:12px;padding:10px 12px;text-align:left;font:inherit}
+.tile b{display:block;font-size:22px}.tile span{font-size:12px;color:var(--muted)}
+.tile.on{outline:2px solid var(--gold)}.tile.warn b{color:var(--danger)}
+.places{font-size:12px;color:var(--muted);margin:8px 0 0}.places b{color:var(--fg)}
+.legend{font-size:12px;color:var(--muted);margin:8px 0 0}
 td.rm button{border:0;background:none;color:var(--muted);font-size:18px;padding:0 8px}
 td.rm button:hover{color:var(--danger)}
 .foot{color:var(--muted);font-size:12px;padding:0 20px 24px}
@@ -140,8 +150,11 @@ td.rm button:hover{color:var(--danger)}
       <button class="btn" id="expBtn" type="button">Export CSV</button>
       <button class="btn primary" id="addRow" type="button">+ Add row</button>
     </div>
+    <div class="dash" id="libDash"></div>
+    <div class="places" id="libPlaces"></div>
     <div class="info" id="libInfo"></div>
     <div class="tblwrap"><table class="lib" id="libTable"></table></div>
+    <p class="legend">Tap a place to cycle: empty &rarr; <b>✓</b> copied &rarr; <b>✓✓</b> checked (you opened it and it is fine) &rarr; – not needed. An album is <b>safe</b> (<span class="sf ok"></span>) when it is in at least 2 places and at least one is not the computer or an SD card; otherwise it is <b>at risk</b> (<span class="sf bad"></span>).</p>
     <div id="impBox" class="warn" style="background:var(--surface);border:1px solid var(--line)" hidden>
       <b>Import rows</b>
       <p style="margin:6px 0;color:var(--muted)">Copy rows from a spreadsheet (or a CSV) and paste them here. Use one line per album: name, year, then one value per column. A first line with column names is recognised. Y or X becomes ✓, a dash becomes –, other text is kept.</p>
@@ -168,7 +181,7 @@ td.rm button:hover{color:var(--danger)}
 <script src="install.js"></script>
 <script src="supabase.js"></script>
 <script>
-var APP_VERSION = '1.3.1';
+var APP_VERSION = '1.4.0';
 var JPG = ['jpg','jpeg','jpe'];
 var RAW = ['cr2','cr3','crw','nef','nrw','arw','srf','sr2','raf','orf','rw2','dng','pef','srw','3fr','erf','kdc','mrw','x3f','raw','iiq','rwl','dcr','mef','mos'];
 var SIDE = ['xmp','pp3','dop','pts'];
@@ -379,32 +392,60 @@ $('delBtn').onclick = async function(){
 /* ---------- Library tab ---------- */
 var LIBKEY = 'pp-library-v1';
 var DEFCOLS = ['Review','Stampa','Computer','HD1','HD2','GP','MicroSD'];
-var lib = {cols: DEFCOLS.slice(), rows: [], del: {}, colsT: 0, year: 'all', q: ''};
+var STAGES = [['', 'No stage'], ['imported', 'Imported'], ['reviewed', 'Reviewed'], ['selected', 'Selected'], ['done', 'Edited / printed']];
+var lib = {cols: DEFCOLS.slice(), rows: [], del: {}, colsT: 0, year: 'all', q: '', f: 'all', miss: ''};
+// Columns that are a step in the work rather than a place a copy is kept.
+function isPlace(c){ return !/^(review|stampa|print|stage)/i.test(c); }
+function isVolatile(c){ return /computer|pc|laptop|sd/i.test(c); }
+function hasCopy(v){ return !!v && v !== '–'; }
+function placesOf(r){ return lib.cols.filter(function(c){ return isPlace(c) && hasCopy(r.v[c]); }); }
+function isSafe(r){ var p = placesOf(r); return p.length >= 2 && p.some(function(c){ return !isVolatile(c); }); }
+function stageOf(r){ return r.stage || ''; }
 try { var sv = JSON.parse(localStorage.getItem(LIBKEY) || 'null'); if (sv && sv.rows) { lib.cols = sv.cols || DEFCOLS.slice(); lib.rows = sv.rows; lib.del = sv.del || {}; lib.colsT = sv.colsT || 0; } } catch(e){}
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
 function libSave(){ try { localStorage.setItem(LIBKEY, JSON.stringify({cols: lib.cols, rows: lib.rows, del: lib.del, colsT: lib.colsT})); } catch(e){ toast('Could not save on this device: ' + e.message); } syncSoon(); }
 function touch(r){ r.t = Date.now(); }
 function uid(){ return Math.random().toString(36).slice(2,10); }
-function normVal(v){ v = (v||'').trim(); if (!v) return ''; if (/^(y|x|yes|si|sì|✓|✔|v)$/i.test(v)) return '✓'; if (/^[-–—]$/.test(v)) return '–'; return v; }
+function normVal(v){ v = (v||'').trim(); if (!v) return ''; if (/^(y|x|yes|si|sì|✓|✔|v)$/i.test(v)) return '✓'; if (/^(yy|vv|✓✓|✔✔|ok)$/i.test(v)) return '✓✓'; if (/^[-–—]$/.test(v)) return '–'; return v; }
 function libYears(){ var y = {}; lib.rows.forEach(function(r){ if (r.year) y[r.year] = (y[r.year]||0)+1; }); return Object.keys(y).sort(function(a,b){return b-a}).map(function(k){return [k,y[k]]}); }
-function libShown(){ var q = lib.q.toLowerCase(); return lib.rows.filter(function(r){ return (lib.year === 'all' || String(r.year) === lib.year) && (!q || r.name.toLowerCase().includes(q)); }); }
+function passF(r){
+  if (lib.f === 'review') return stageOf(r) === '' || stageOf(r) === 'imported';
+  if (lib.f === 'select') return stageOf(r) === 'reviewed';
+  if (lib.f === 'risk') return !isSafe(r);
+  if (lib.f === 'done') return stageOf(r) === 'done';
+  return true;
+}
+function libShown(){ var q = lib.q.toLowerCase(); return lib.rows.filter(function(r){ return (lib.year === 'all' || String(r.year) === lib.year) && (!q || r.name.toLowerCase().includes(q)) && passF(r) && (!lib.miss || !hasCopy(r.v[lib.miss])); }); }
+function libDash(){
+  var all = lib.rows, n = function(fn){ return all.filter(fn).length; };
+  var t = [['all','All albums', all.length], ['review','To review', n(function(r){ return stageOf(r) === '' || stageOf(r) === 'imported'; })], ['select','To select', n(function(r){ return stageOf(r) === 'reviewed'; })], ['risk','At risk', n(function(r){ return !isSafe(r); })], ['done','Edited / printed', n(function(r){ return stageOf(r) === 'done'; })]];
+  $('libDash').innerHTML = t.map(function(x){ return '<button type="button" class="tile' + (lib.f === x[0] ? ' on' : '') + (x[0] === 'risk' && x[2] ? ' warn' : '') + '" data-f="' + x[0] + '"><b>' + x[2] + '</b><span>' + x[1] + '</span></button>'; }).join('');
+  var pl = lib.cols.filter(isPlace);
+  $('libPlaces').innerHTML = pl.map(function(c){ var k = all.filter(function(r){ return hasCopy(r.v[c]); }).length; return esc(c) + ' <b>' + k + '</b>'; }).join(' &middot; ') +
+    ' &nbsp; <select class="inp" id="missSel" style="padding:3px 6px;font-size:12px"><option value="">Show all</option>' + pl.map(function(c){ return '<option value="' + esc(c) + '"' + (lib.miss === c ? ' selected' : '') + '>Missing from ' + esc(c) + '</option>'; }).join('') + '</select>';
+}
 function libRender(focusId){
   var ys = libYears();
   $('yearChips').innerHTML = '<button type="button" class="chip' + (lib.year==='all'?' on':'') + '" data-y="all">All<span>' + lib.rows.length + '</span></button>' +
     ys.map(function(y){ return '<button type="button" class="chip' + (lib.year===y[0]?' on':'') + '" data-y="' + y[0] + '">' + y[0] + '<span>' + y[1] + '</span></button>'; }).join('');
   var list = libShown();
-  var head = '<tr><th>Album / shoot</th><th>Year</th>' + lib.cols.map(function(c){ return '<th>' + esc(c) + '</th>'; }).join('') + '<th></th></tr>';
+  libDash();
+  var head = '<tr><th>Album / shoot</th><th>Year</th><th>Stage</th>' + lib.cols.map(function(c){ return '<th>' + esc(c) + '</th>'; }).join('') + '<th>Safe</th><th></th></tr>';
   var body = list.map(function(r){
     return '<tr data-id="' + r.id + '"><td class="nm"><input data-f="name" value="' + esc(r.name) + '" placeholder="Name"></td><td class="yr"><input data-f="year" inputmode="numeric" value="' + esc(String(r.year||'')) + '"></td>' +
-      lib.cols.map(function(c,i){ var v = r.v[c] || '', cls = v === '✓' ? ' y' : v === '–' ? ' n' : v ? ' t' : '';
+      '<td class="stg"><select data-f="stage" class="s-' + stageOf(r) + '">' + STAGES.map(function(s){ return '<option value="' + s[0] + '"' + (stageOf(r) === s[0] ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select></td>' +
+      lib.cols.map(function(c,i){ var v = r.v[c] || '', cls = v === '✓' ? ' y' : v === '✓✓' ? ' v' : v === '–' ? ' n' : v ? ' t' : '';
         return '<td><button type="button" class="cell' + cls + '" data-c="' + esc(c) + '">' + (v ? esc(v) : '·') + '</button></td>'; }).join('') +
+      '<td title="' + (isSafe(r) ? 'In ' + placesOf(r).join(', ') : 'Needs a second copy, away from the computer / SD card') + '"><span class="sf ' + (isSafe(r) ? 'ok' : 'bad') + '"></span></td>' +
       '<td class="rm"><button type="button" title="Delete row">×</button></td></tr>';
   }).join('');
-  $('libTable').innerHTML = head + (body || '<tr><td colspan="' + (lib.cols.length+3) + '" style="padding:24px;color:var(--muted)">No rows yet. Add one, or use Import to paste your list.</td></tr>');
+  $('libTable').innerHTML = head + (body || '<tr><td colspan="' + (lib.cols.length+5) + '" style="padding:24px;color:var(--muted)">No rows yet. Add one, or use Import to paste your list.</td></tr>');
   $('libInfo').textContent = list.length + ' of ' + lib.rows.length + ' albums' + (lib.year !== 'all' ? ' in ' + lib.year : '');
   if (focusId){ var el = document.querySelector('tr[data-id="' + focusId + '"] input'); if (el){ el.focus(); el.scrollIntoView({block:'center'}); } }
 }
 $('yearChips').addEventListener('click', function(e){ var b = e.target.closest('.chip'); if (b){ lib.year = b.dataset.y; libRender(); } });
+$('libDash').addEventListener('click', function(e){ var b = e.target.closest('.tile'); if (b){ lib.f = (lib.f === b.dataset.f ? 'all' : b.dataset.f); libRender(); } });
+$('libPlaces').addEventListener('change', function(e){ if (e.target.id === 'missSel'){ lib.miss = e.target.value; libRender(); } });
 $('libSearch').oninput = function(){ lib.q = this.value; libRender(); };
 $('addRow').onclick = function(){
   var r = {id: uid(), name: '', year: lib.year !== 'all' ? Number(lib.year) : new Date().getFullYear(), v: {}, t: Date.now()};
@@ -413,7 +454,8 @@ $('addRow').onclick = function(){
 function rowOf(el){ var tr = el.closest('tr'); return tr && lib.rows.find(function(r){ return r.id === tr.dataset.id; }); }
 $('libTable').addEventListener('change', function(e){
   var r = rowOf(e.target), f = e.target.dataset.f; if (!r || !f) return;
-  touch(r); if (f === 'year'){ var n = parseInt(e.target.value, 10); r.year = isNaN(n) ? '' : n; libSave(); libRender(); } else { r.name = e.target.value; libSave(); }
+  touch(r); if (f === 'stage'){ r.stage = e.target.value; libSave(); libRender(); return; }
+  if (f === 'year'){ var n = parseInt(e.target.value, 10); r.year = isNaN(n) ? '' : n; libSave(); libRender(); } else { r.name = e.target.value; libSave(); }
 });
 var lpTimer = null, lpFired = false;
 function editCell(btn){
@@ -426,8 +468,8 @@ $('libTable').addEventListener('click', function(e){
   if (cell){
     if (lpFired){ lpFired = false; return; }
     var r = rowOf(cell), c = cell.dataset.c, v = r.v[c] || '';
-    var nx = v === '' ? '✓' : v === '✓' ? '–' : ''; if (nx) r.v[c] = nx; else delete r.v[c]; touch(r);
-    libSave(); cell.textContent = nx || '·'; cell.className = 'cell' + (nx === '✓' ? ' y' : nx === '–' ? ' n' : ''); return;
+    var nx = v === '' ? '✓' : v === '✓' ? '✓✓' : v === '✓✓' ? '–' : v === '–' ? '' : ''; if (nx) r.v[c] = nx; else delete r.v[c]; touch(r);
+    libSave(); cell.textContent = nx || '·'; cell.className = 'cell' + (nx === '✓' ? ' y' : nx === '✓✓' ? ' v' : nx === '–' ? ' n' : ''); libRender(); return;
   }
   if (rm){ var r2 = rowOf(rm); if (r2 && confirm('Delete "' + (r2.name || 'this row') + '"?')){ lib.rows = lib.rows.filter(function(x){return x !== r2}); lib.del[r2.id] = Date.now(); libSave(); libRender(); } }
 });
@@ -455,13 +497,14 @@ $('impGo').onclick = function(){
   var cols = lib.cols.slice();
   if (rows[0].length > 1 && /^(year|anno)$/i.test(rows[0][1]) || /^(name|album|nome)$/i.test(rows[0][0])){
     cols = rows[0].slice(2).filter(Boolean); rows.shift();
-    cols.forEach(function(c){ if (!lib.cols.some(function(x){ return x.toLowerCase() === c.toLowerCase(); })) lib.cols.push(c); });
-    cols = cols.map(function(c){ return lib.cols.find(function(x){ return x.toLowerCase() === c.toLowerCase(); }); });
+    cols.forEach(function(c){ if (/^stage$/i.test(c)) return; if (!lib.cols.some(function(x){ return x.toLowerCase() === c.toLowerCase(); })) lib.cols.push(c); });
+    cols = cols.map(function(c){ return /^stage$/i.test(c) ? 'Stage' : lib.cols.find(function(x){ return x.toLowerCase() === c.toLowerCase(); }); });
   }
   var out = rows.map(function(p){
     var yr = parseInt(p[1], 10), v = {};
-    cols.forEach(function(c,i){ var x = normVal(p[2+i]); if (x) v[c] = x; });
-    return {id: uid(), name: p[0] || '', year: isNaN(yr) ? '' : yr, v: v, t: Date.now()};
+    var stg = '';
+    cols.forEach(function(c,i){ if (c === 'Stage'){ var sv2 = (p[2+i] || '').toLowerCase(); var m = STAGES.find(function(s){ return s[0] && (s[0] === sv2 || s[1].toLowerCase() === sv2); }); stg = m ? m[0] : ''; return; } var x = normVal(p[2+i]); if (x) v[c] = x; });
+    return {id: uid(), name: p[0] || '', year: isNaN(yr) ? '' : yr, stage: stg, v: v, t: Date.now()};
   });
   lib.colsT = Date.now();
   if ($('impReplace').checked){ lib.rows.forEach(function(x){ lib.del[x.id] = Date.now(); }); lib.rows = out; } else lib.rows = lib.rows.concat(out);
@@ -469,7 +512,7 @@ $('impGo').onclick = function(){
 };
 $('expBtn').onclick = function(){
   function q(x){ x = String(x == null ? '' : x); return /[",\n;]/.test(x) ? '"' + x.replace(/"/g,'""') + '"' : x; }
-  var lines = [['Name','Year'].concat(lib.cols).map(q).join(',')].concat(libShown().map(function(r){ return [r.name, r.year].concat(lib.cols.map(function(c){ return r.v[c] || ''; })).map(q).join(','); }));
+  var lines = [['Name','Year'].concat(lib.cols).concat(['Stage']).map(q).join(',')].concat(libShown().map(function(r){ return [r.name, r.year].concat(lib.cols.map(function(c){ return r.v[c] || ''; })).concat([r.stage || '']).map(q).join(','); }));
   var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\n')], {type:'text/csv'}));
   a.download = 'photo-library' + (lib.year !== 'all' ? '-' + lib.year : '') + '.csv'; a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
 };
