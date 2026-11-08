@@ -2,6 +2,11 @@
 
 All notable changes to Photo Pairs, newest first. The version number is also shown in the app header.
 
+## 1.4.1 - 2026-11-08
+- Library: new Month column next to Year (pick Jan to Dec).
+- Library: new "Sort" drop-down next to the search box: as added, oldest first or newest first. It sorts by year, then month; albums with no year go to the bottom. The choice is remembered.
+- Export and import include the Month column.
+
 ## 1.4.0 - 2026-11-08
 - Library: each album now has a Stage (Imported, Reviewed, Selected, Edited / printed) so you can see how far it has got.
 - Library: a dashboard above the table with tap-to-filter tiles: All albums, To review, To select, At risk and Edited / printed. A line under it counts the albums in each place (Computer, HD1, HD2, GP...) and a "Missing from..." filter lists the albums not yet copied to a given place.
